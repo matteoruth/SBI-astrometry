@@ -46,6 +46,7 @@ class data_processing:
 
 def main():
     data_set = read_input.read_file('{}/betaPic.csv'.format(orbitize.DATADIR))
+    data_set = data_set[:-1] # error came from here, rv data was not removed
     prior = prior_distributions(log_uniform_lower = torch.tensor(10.0), 
                                 log_uniform_upper = torch.tensor(10**4),
                                 uniform_lower = torch.tensor([10e-8, 0.0, 0.0, 0.0, 0.0]), 

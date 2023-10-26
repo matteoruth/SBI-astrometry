@@ -47,14 +47,15 @@ def train_sbi(name,
             estimator.train()
 
             train_loss = torch.stack([
-                step(loss(theta.cuda(), x.cuda()))
+                
+                step(loss(theta.cuda(), x[:, :-2].cuda())) # x[:, :-2] to remove rv data, should recreate a dataset
                 for theta, x in islice(trainset, 1024)
             ]).cpu().numpy()
 
             estimator.eval()
             with torch.no_grad():
                 valid_loss = torch.stack([
-                    loss(theta.cuda(), x.cuda())
+                    loss(theta.cuda(), x[:, :-2].cuda()) # x[:, :-2] to remove rv data, should recreate a dataset
                     for theta, x in islice(validset, 256)
                 ]).cpu().numpy()
 
