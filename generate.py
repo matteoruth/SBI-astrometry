@@ -1,63 +1,44 @@
-from lampe.data import JointLoader, H5Dataset
-from time import time
-import torch
+from lampe.data import H5Dataset, JointLoader
 import orbitize
 from orbitize import read_input
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
-from prior import prior_distributions
-from simulator import OrbitCreator
+from prior import Priors
+from simulator import Simulator
 
-def simulate(loader, term, size):
-        H5Dataset.store(
-            loader, 
-            f'Data/{term}/beta-pic-{term}-8.h5', 
-            size=(size), 
-            overwrite=True)
-    
 def generate(loader):
-    #simulate(loader, 'test', 2**17)
-    #simulate(loader, 'val', 2**20) 
-    simulate(loader, 'train', 2**20) # faire ça 8 fois pour un total de 2**23
-    
-class data_processing:
-  def __init__(self, trainset, scaler1=MinMaxScaler, scaler2 = MinMaxScaler):
+    """
+    Generates and stores datasets for training, validation, and testing.
 
-    thetas = trainset[:][0]
-    xs = trainset[:][1]
+    Args:
+        loader: A JointLoader object.
 
-    self.scaler_theta = scaler1()
-    self.scaler_x = scaler2()
-
-    self.thetas_processed = self.scaler_theta.fit(thetas)
-    self.xs_processed = self.scaler_x.fit(xs)
-
-  def preprocess_x(self, x):
-    return torch.Tensor(self.scaler_x.transform(x))
-
-  def preprocess_theta(self, theta):
-    return torch.Tensor(self.scaler_theta.transform(theta))
-
-  def postprocess_x(self, x):
-    return torch.Tensor(self.scaler_x.inverse_transform(x))
-
-  def postprocess_theta(self, theta):
-    return torch.Tensor(self.scaler_theta.inverse_transform(theta))
-
+    Returns:
+        None
+    """
+    H5Dataset.store(
+        loader, 
+        f'Data/test/beta-pic-test.h5', 
+        size=2**17, 
+        overwrite=True)
+    H5Dataset.store(
+        loader, 
+        f'Data/val/beta-pic-val.h5', 
+        size=2**20, 
+        overwrite=True)
+    H5Dataset.store(
+        loader, 
+        f'Data/train/beta-pic-train.h5', 
+        size=2**23, 
+        overwrite=True)
 
 def main():
-    data_set = read_input.read_file('{}/betaPic.csv'.format(orbitize.DATADIR))
-    data_set = data_set[:-1] # error came from here, rv data was not removed
-    prior = prior_distributions(log_uniform_lower = torch.tensor(10.0), 
-                                log_uniform_upper = torch.tensor(10**4),
-                                uniform_lower = torch.tensor([10e-8, 0.0, 0.0, 0.0, 0.0]), 
-                                uniform_upper = torch.tensor([0.99, 180.0, 360.0, 360.0, 1.0]),
-                                gaussian_mean = torch.tensor([56.95, 1.22]), 
-                                gaussian_std = torch.tensor([0.26, 0.08]))
-    simulator = OrbitCreator(data_set)
-    loader = JointLoader(prior, simulator, batch_size=16, vectorized=True)
+    data_table = read_input.read_file('{}/betaPic.csv'.format(orbitize.DATADIR))
+    data_table = data_table[:-1] 
 
+    prior = Priors()
+    simulator = Simulator(data_table)
+    loader = JointLoader(prior, simulator, batch_size=16, vectorized=True)
+    
     generate(loader)
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
-    
