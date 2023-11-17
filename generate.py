@@ -16,17 +16,17 @@ def generate(loader):
     """
     H5Dataset.store(
         loader, 
-        f'Data/test/beta-pic-test.h5', 
+        f'datasets/beta-pic-test.h5', 
         size=2**17, 
         overwrite=True)
     H5Dataset.store(
         loader, 
-        f'Data/val/beta-pic-val.h5', 
+        f'datasets/beta-pic-val.h5', 
         size=2**20, 
         overwrite=True)
     H5Dataset.store(
         loader, 
-        f'Data/train/beta-pic-train.h5', 
+        f'datasets/beta-pic-train.h5', 
         size=2**23, 
         overwrite=True)
 

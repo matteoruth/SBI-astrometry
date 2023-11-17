@@ -21,7 +21,6 @@ class NPEWithEmbedding(nn.Module):
                  transforms,
                  flow,
                  NPE_hidden_features):
-        
         super().__init__()
         
         self.embedding = nn.Sequential(MLP(num_obs * 2,
@@ -33,7 +32,7 @@ class NPEWithEmbedding(nn.Module):
                        embedding_output_dim, 
                        transforms = transforms, 
                        build = flow, 
-                       NPE_hidden_features = NPE_hidden_features, 
+                       hidden_features = NPE_hidden_features, 
                        activation = activation)
         
     def forward(self, theta: Tensor, x: Tensor) -> Tensor:
@@ -43,7 +42,7 @@ class NPEWithEmbedding(nn.Module):
         return self.npe.flow(self.embedding(x))
 
 
-def train(trainset, epochs, num_obs, embedding_output_dim,
+def train(trainset, validset, epochs, num_obs, embedding_output_dim,
           embedding_hidden_features=[256] * 3, activation=nn.ELU,
           transforms=3, flow=zuko.flows.spline.NSF,
           NPE_hidden_features=[512] * 5, initial_lr=1e-3,
@@ -73,23 +72,13 @@ def train(trainset, epochs, num_obs, embedding_output_dim,
     Returns:
         None
     """
-def train(
-        trainset,
-        epochs,
-        num_obs, 
-        embedding_output_dim,
-        embedding_hidden_features = [256] * 3,
-        activation = nn.ELU,
-        transforms = 3,
-        flow = zuko.flows.spline.NSF,
-        NPE_hidden_features = [512] * 5,
-        initial_lr = 1e-3,
-        weight_decay = 1e-2,
-        clip = 1.0,
-        ):
-    
     prior = Priors() # Needed to preprocess the thetas
 
+#     estimator = NPE(8,
+#                     68,
+#                     transforms=transforms,
+#                     build = zuko.flows.spline.NSF,
+#                     hidden_features=NPE_hidden_features).cuda()
     estimator = NPEWithEmbedding(
         num_obs, 
         embedding_output_dim,
@@ -142,14 +131,16 @@ def train(
             estimator.train()
             train_loss = torch.stack([
                 step(loss(prior.pre_process(theta).cuda(), x.cuda())) 
-                for theta, x in islice(trainset, 1024)
+                for theta, x in islice(trainset, 1024) 
                 ]).cpu().numpy()
             
             estimator.eval()
-            valid_loss = torch.stack([
-                loss(prior.pre_process(theta).cuda(), x.cuda())
-                for theta, x in islice(trainset, 256)
-                ]).cpu().numpy()
+            
+            with torch.no_grad():
+                valid_loss = torch.stack([
+                    loss(prior.pre_process(theta).cuda(), x.cuda())
+                    for theta, x in islice(validset, 256) 
+                    ]).cpu().numpy()
 
             wandb.log({
                 "train_loss": train_loss.mean(), 
@@ -165,6 +156,6 @@ def train(
             tq.set_postfix(loss=train_loss.mean(), 
                 val_loss=valid_loss.mean())
 
-    name = wandb.name()
-    torch.save(estimator.state_dict(), f"models/{name}.pth")
+    name = wandb.run.name
+    torch.save(estimator, f"models/{name}.pth")
     wandb.finish()

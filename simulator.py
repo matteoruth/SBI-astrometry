@@ -50,10 +50,14 @@ class Simulator:
         for i in range(n_samples):
             theta = thetas[i]
             sma, ecc, inc, aop, pan, tau, plx, mtot = theta.numpy()
-
+            
+            inc = np.radians(inc)
+            aop = np.radians(aop)
+            pan = np.radians(pan)
+            
             ra, dec, _ = calc_orbit(
                 self.data_table["epoch"], sma, ecc, inc, aop, pan,
-                tau, plx, mtot)
+                tau, plx, mtot, use_gpu = True, tau_ref_epoch=50000)
 
             # calc_orbit returns numpy arrays, need to convert to tensors
             ra = torch.tensor(ra,dtype=torch.float32)
